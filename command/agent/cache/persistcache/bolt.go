@@ -21,15 +21,15 @@ func NewBoltStorage(path string) (*BoltStorage, error) {
 		return nil, err
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
-		top, err := tx.CreateBucket([]byte("topBucket"))
+		top, err := tx.CreateBucketIfNotExists([]byte("topBucket"))
 		if err != nil {
 			return fmt.Errorf("failed to create bucket %s: %w", "topBucket", err)
 		}
-		_, err = top.CreateBucket([]byte(TokenType))
+		_, err = top.CreateBucketIfNotExists([]byte(TokenType))
 		if err != nil {
 			return fmt.Errorf("failed to create token sub-bucket: %w", err)
 		}
-		_, err = top.CreateBucket([]byte(LeaseType))
+		_, err = top.CreateBucketIfNotExists([]byte(LeaseType))
 		if err != nil {
 			return fmt.Errorf("failed to create lease sub-bucket: %w", err)
 		}

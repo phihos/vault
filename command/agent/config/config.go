@@ -48,7 +48,7 @@ type Cache struct {
 	UseAutoAuthTokenRaw interface{} `hcl:"use_auto_auth_token"`
 	UseAutoAuthToken    bool        `hcl:"-"`
 	ForceAutoAuthToken  bool        `hcl:"-"`
-	Snapshot            *Snapshot   `hcl:"snapshot,block"`
+	Snapshot            *Snapshot   `hcl:"snapshot"`
 }
 
 // Snapshot contains configuration needed for persistent caching

@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/vault/command/agent/auth/kerberos"
 	"github.com/hashicorp/vault/command/agent/auth/kubernetes"
 	"github.com/hashicorp/vault/command/agent/cache"
+	"github.com/hashicorp/vault/command/agent/cache/persistcache"
 	agentConfig "github.com/hashicorp/vault/command/agent/config"
 	"github.com/hashicorp/vault/command/agent/sink"
 	"github.com/hashicorp/vault/command/agent/sink/file"
@@ -457,6 +458,19 @@ func (c *AgentCommand) Run(args []string) int {
 			return 1
 		}
 
+		// If snapshot.export = true, setup bolt for persistent storage
+		var ps persistcache.Storage
+		if config.Cache.Snapshot != nil {
+			if config.Cache.Snapshot.Export {
+				ps, err = persistcache.NewBoltStorage(config.Cache.Snapshot.Path)
+				if err != nil {
+					c.UI.Error(fmt.Sprintf("Error creating persistent cache: %v", err))
+					return 1
+				}
+				c.UI.Info(fmt.Sprintf("configured persistent storage at %q", config.Cache.Snapshot.Path))
+			}
+		}
+
 		// Create the lease cache proxier and set its underlying proxier to
 		// the API proxier.
 		leaseCache, err := cache.NewLeaseCache(&cache.LeaseCacheConfig{
@@ -464,11 +478,28 @@ func (c *AgentCommand) Run(args []string) int {
 			BaseContext: ctx,
 			Proxier:     apiProxy,
 			Logger:      cacheLogger.Named("leasecache"),
+			Storage:     ps,
 		})
-		// TODO(tvoran): add persistence config if enabled here
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error creating lease cache: %v", err))
 			return 1
+		}
+
+		// If snapshot.export = false, restore in-memory lease cache from bolt file
+		if config.Cache.Snapshot != nil {
+			if !config.Cache.Snapshot.Export {
+				loadStorage, err := persistcache.NewBoltStorage(config.Cache.Snapshot.Path)
+				if err != nil {
+					c.UI.Error(fmt.Sprintf("Error loading persistent cache file: %v", err))
+					return 1
+				}
+				if err := leaseCache.Restore(loadStorage); err != nil {
+					c.UI.Error(fmt.Sprintf("Error restoring in-memory cache from persisted file: %v", err))
+					return 1
+				}
+				c.UI.Info(fmt.Sprintf("loaded cache from persistent storage at %q", config.Cache.Snapshot.Path))
+				// TODO(tvoran): remove bolt storage file here
+			}
 		}
 
 		var inmemSink sink.Sink

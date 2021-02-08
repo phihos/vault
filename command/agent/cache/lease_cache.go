@@ -886,6 +886,7 @@ func (c *LeaseCache) Set(index *cachememdb.Index, indexType persistcache.IndexTy
 		if err := c.ps.Set(index.ID, b, indexType); err != nil {
 			return err
 		}
+		c.logger.Debug("set entry in persistent storage", "type", indexType, "path", index.RequestPath, "id", index.ID)
 	}
 
 	return nil
@@ -902,6 +903,7 @@ func (c *LeaseCache) Evict(id string) error {
 		if err := c.ps.Delete(id); err != nil {
 			return err
 		}
+		c.logger.Debug("deleted item from persistent storage", "id", id)
 	}
 
 	return nil
@@ -928,6 +930,7 @@ func (c *LeaseCache) Restore(storage persistcache.Storage) error {
 		if err := c.db.Set(newIndex); err != nil {
 			return err
 		}
+		c.logger.Debug("restored token", "id", newIndex.ID)
 	}
 
 	// Then process leases
@@ -949,6 +952,7 @@ func (c *LeaseCache) Restore(storage persistcache.Storage) error {
 		if err := c.db.Set(newIndex); err != nil {
 			return err
 		}
+		c.logger.Debug("restored lease", "id", newIndex.ID, "path", newIndex.RequestPath)
 	}
 
 	return nil
