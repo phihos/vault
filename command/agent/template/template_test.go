@@ -162,8 +162,10 @@ func TestServerRun(t *testing.T) {
 			ctx, _ := context.WithTimeout(context.Background(), 20*time.Second)
 			sc := ServerConfig{
 				Logger: logging.NewVaultLogger(hclog.Trace),
-				VaultConf: &config.Vault{
-					Address: ts.URL,
+				AgentConfig: &config.Config{
+					Vault: &config.Vault{
+						Address: ts.URL,
+					},
 				},
 				LogLevel:      hclog.Trace,
 				LogWriter:     hclog.DefaultOutput,
